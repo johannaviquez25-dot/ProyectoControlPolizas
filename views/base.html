@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Control de pólizas{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="contenedor">
+      <h1>Corredora de Seguros Horizonte</h1>
+      <p>
+        Control de pólizas · Fecha de corte
+        {{ fecha_corte.strftime('%d/%m/%Y') if fecha_corte else '—' }}
+      </p>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    {% block contenido %}{% endblock %}
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor">
+      <p>Universidad Fundepos · Técnico en IA Empresarial · Módulo 2 · Datos ficticios</p>
+    </div>
+  </footer>
+</body>
+</html>

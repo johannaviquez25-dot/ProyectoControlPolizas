@@ -1,0 +1,31 @@
+# -----------------------------------------------------------------------------
+# render.yaml - Blueprint de Render para este proyecto.
+#
+# Es la "receta" del despliegue: Render la lee desde GitHub y crea el servicio
+# web solo. Cada vez que hagamos push a la rama main, Render vuelve a desplegar.
+#
+# Ojo: es un archivo YAML. La sangria (los espacios al inicio) importa.
+# -----------------------------------------------------------------------------
+
+services:
+  # --- Servicio web (la app de Flask) ---
+  - type: web
+    name: control-polizas
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    # uv.lock está en la raíz, así que Render usa uv automáticamente.
+    # --locked falla el build si uv.lock y pyproject.toml no coinciden.
+    buildCommand: uv sync --locked
+    # gunicorn es el servidor de producción. Escucha en 0.0.0.0 y en el
+    # puerto que Render entrega en la variable $PORT.
+    # 1 worker y 4 hilos: alcanza para esta app y entra en el plan gratuito.
+    startCommand: uv run gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 --access-logfile -
+    envVars:
+      # Versión exacta de Python (Render exige los tres números si se usa esta variable).
+      - key: PYTHON_VERSION
+        value: "3.12.16"
+      # Versión exacta de uv, la misma que usamos en la computadora.
+      - key: UV_VERSION
+        value: "0.13.7"

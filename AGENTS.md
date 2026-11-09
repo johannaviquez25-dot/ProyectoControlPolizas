@@ -1,51 +1,40 @@
-# AGENTS.md
-
-## Idioma
-
-- Responde siempre en español, aunque el código, los archivos o las instrucciones estén en otro idioma.
-
-## Qué es este espacio
-
-- No es un repositorio de código: es un conjunto de **datos y documentos académicos ficticios** (Universidad Fundepos, Técnico en IA Empresarial). No hay build, tests, lint, package manifest ni CI.
-- La ruta raíz termina en un espacio (`.../Proyecto control polizas `): **cita siempre las rutas**.
-- Todo el contenido es ficticio; no lo trates como datos reales de clientes.
-
-## Estructura y fuente de verdad
-
-- `Insumos_Control_Polizas/Maestro_Clientes.xlsx` → hoja `Clientes`, 20 registros. Columnas: `Cedula`, `Nombre_Completo`, `Correo`, `Telefono`, `Asesor`. La cédula es la clave.
-- `Insumos_Control_Polizas/polizas/` → 20 PDFs de una página generados con ReportLab.
-- No existe otro registro de pólizas: el estado se deriva de los PDFs + el maestro.
-
-## Convención de pólizas
-
-- Nombre: `Poliza_<CODIGO>-<AÑO>-<NNNN>.pdf`. El número interno y el pie de página (`Pagina 1 de 1 - ...`) deben coincidir con el nombre del archivo.
-- Códigos de aseguradora: `AIS` = Aseguradora del Istmo S.A.; `PCS` = Proteccion Caribe S.A.; `SPC` = Seguros Pacifico Central S.A.
-- Campos del PDF: Número, Ramo, Tomador/Asegurado, Cédula, Vigencia desde/hasta (`DD/MM/YYYY`), Prima anual (`CRC 228,000.00`), Forma de pago, Suma asegurada, Intermediario, Asesor, Coberturas.
-- Ramos usados: Automovil, Salud, Vida, Hogar, Responsabilidad Civil.
-
-## Codificación y extracción (gotchas)
-
-- Los datos están **sin tildes** (`Umana`, `Zuniga`, `Bolanos`, `Proteccion`, `Pacifico`). No "corrijas" tildes: compara literalmente.
-- No hay `pdftotext`, `openpyxl` ni `pandas` instalados. El texto de los PDFs está en un stream ASCII85+Flate; con stdlib:
-
-```python
-import re, zlib, base64
-d = open(pdf, "rb").read()
-s = re.search(rb"stream\r?\n(.*?)endstream", d, re.S).group(1).strip()
-text = zlib.decompress(base64.a85decode(s, adobe=True)).decode("latin-1")
-```
-
-- El XLSX usa inline strings (no hay `sharedStrings.xml`); se puede leer con `zipfile` + XML sin dependencias.
-
-## Inconsistencias conocidas (verificadas 2026-11-09)
-
-- `Poliza_PCS-2026-0009.pdf` es de **Roberto Fantasma Perez** (`9-0000-0001`), que no existe en el maestro.
-- **Javier Espinoza Leon** (`1-0321-0654`) está en el maestro pero no tiene póliza.
-- `AIS-2026-0002` tiene `Prima anual` vacía (solo `Forma de pago: Semestral`).
-- Probablemente son casos de prueba intencionales: repórtalos; no los "arregles" en silencio.
-
-## Reglas de trabajo
-
-- No edites binarios a mano ni regeneres PDFs/XLSX sin pedirlo; conserva nombres, numeración y formato.
-- Al agregar pólizas, sigue la convención anterior y actualiza el maestro cuando corresponda.
-- `.DS_Store` es ruido; ignóralo.
+# Proyecto: control-polizas
+ 
+## Reglas para el agente
+1. Responde siempre en español, con lenguaje sencillo: soy principiante.
+2. Antes de construir algo nuevo, muestra un plan corto y espera mi aprobación.
+3. Después de cada cambio, explica qué archivos cambiaste y en qué capa están.
+4. Código comentado en español, señalando los ladrillos: variables, tipos, listas, diccionarios, condicionales, bucles y funciones.
+5. No borres archivos ni modifiques nada dentro de data/.
+6. Nunca enciendas la app por tu cuenta: yo la enciendo con iniciar_app.bat.
+ 
+## Tecnología
+- Gestor: uv (nunca pip). Librerías con "uv add". Ejecutar con "uv run app.py".
+- Python 3.12, Flask, pandas, openpyxl, pdfplumber (leer PDF) y fpdf2 (crear PDF). La app NO usa inteligencia artificial.
+ 
+## Arquitectura por capas (respetarla siempre)
+- data/ = la bodega: Maestro_Clientes.xlsx y la carpeta polizas/ con los PDF (solo lectura).
+- models/datos.py = único lugar que abre archivos. cargar_clientes() lee el Excel con pandas (Cedula como texto sin espacios). leer_poliza(ruta) extrae el texto del PDF con pdfplumber y devuelve un diccionario; cargar_polizas() recorre data/polizas y devuelve una lista de diccionarios.
+- models/polizas.py = reglas del negocio: FECHA_CORTE, DIAS_AVISO, estado_poliza(), calcular_resultados(), contar_por_estado(), primas_por_aseguradora(), buscar_inconsistencias(), buscar_por_numero().
+- services/generador_aviso.py = crear el aviso de renovación en PDF con fpdf2 (A4 vertical) y devolverlo en bytes.
+- controllers/polizas_controller.py = rutas de Flask (Blueprint). No calcula: llama al modelo y al servicio.
+- views/ = plantillas HTML (Jinja). Solo muestran. public/static/estilos.css = diseño rojo (#AE1800), negro (#201E1D) y gris claro (#F3F2F2).
+- app.py = crea la app Flask en la variable app con template_folder="views", static_folder="public/static", static_url_path="/static", y registra el Blueprint.
+ 
+## Formato de los PDF
+- La primera línea del texto es el nombre de la aseguradora.
+- Luego hay líneas "Etiqueta: valor" con estas etiquetas: Numero de poliza, Ramo, Tomador / Asegurado, Cedula, Vigencia desde, Vigencia hasta, Prima anual, Forma de pago, Suma asegurada, Asesor.
+- Fechas en formato dd/mm/aaaa. Montos como "CRC 228,000.00" (convertir a número; si está vacío, None).
+ 
+## Reglas del negocio
+- FECHA_CORTE = 2 de noviembre de 2026. DIAS_AVISO = 30.
+- Vencida: hasta < FECHA_CORTE. Por vencer: 0 <= días hasta vencer <= DIAS_AVISO. Vigente: más de DIAS_AVISO días.
+- Cruzar cada póliza con el maestro por Cedula para obtener el correo.
+- Inconsistencias: (1) cliente del maestro sin ninguna póliza; (2) póliza cuya cédula no está en el maestro; (3) póliza sin prima o con fecha ilegible.
+- Primas por aseguradora: suma de la prima de las pólizas no vencidas.
+- Resultado esperado con los datos de data/: 12 Vigentes, 5 Por vencer, 3 Vencidas y 3 inconsistencias.
+ 
+## Rutas de la app
+- "/" tablero: 3 contadores, primas por aseguradora, inconsistencias y tabla de pólizas ordenada por días para vencer (lo urgente primero).
+- "/aviso/" devuelve el aviso en PDF; 404 si la póliza no existe o está vigente.
+- "/descargar-avisos" un .zip con los avisos de todas las pólizas por vencer y vencidas.

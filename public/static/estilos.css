@@ -1,0 +1,382 @@
+/* Colores principales del proyecto */
+:root {
+  --rojo: #AE1800;
+  --rojo-oscuro: #8f1400;
+  --negro: #201E1D;
+  --gris-claro: #F3F2F2;
+  --gris-borde: #d8d5d3;
+  --gris-texto: #6b6866;
+  --verde: #1f7a4d;
+  --ambar: #b26a00;
+  --rojo-claro: #fbe9e6;
+  --ambar-claro: #fff4e0;
+  --blanco: #ffffff;
+}
+
+/* Base */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gris-claro);
+  color: var(--negro);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  flex: 1;
+  padding: 1.5rem 0 0;
+}
+
+a {
+  color: var(--rojo);
+}
+
+.contenedor {
+  width: min(1200px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+/* Cabecera */
+.cabecera {
+  background: var(--rojo);
+  color: var(--blanco);
+  border-bottom: 4px solid var(--negro);
+  padding: 1.25rem 0;
+}
+
+.cabecera h1 {
+  margin: 0 0 0.25rem;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.2;
+}
+
+.cabecera p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+/* Pie de página */
+.pie {
+  margin-top: 2rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--gris-borde);
+  background: var(--blanco);
+  color: var(--gris-texto);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.pie p {
+  margin: 0;
+}
+
+/* Botón principal */
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.boton {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--rojo);
+  border-radius: 0.5rem;
+  background: var(--rojo);
+  color: var(--blanco);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.boton:hover,
+.boton:focus-visible {
+  background: var(--rojo-oscuro);
+  border-color: var(--rojo-oscuro);
+}
+
+/* Tarjetas de contadores */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--gris-borde);
+  border-left: 6px solid var(--negro);
+  border-radius: 0.75rem;
+  background: var(--blanco);
+  box-shadow: 0 1px 3px rgba(32, 30, 29, 0.08);
+}
+
+.tarjeta-vigente {
+  border-left-color: var(--verde);
+}
+
+.tarjeta-por-vencer {
+  border-left-color: var(--ambar);
+}
+
+.tarjeta-vencida {
+  border-left-color: var(--rojo);
+}
+
+.tarjeta-numero {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tarjeta-vigente .tarjeta-numero {
+  color: var(--verde);
+}
+
+.tarjeta-por-vencer .tarjeta-numero {
+  color: var(--ambar);
+}
+
+.tarjeta-vencida .tarjeta-numero {
+  color: var(--rojo);
+}
+
+.tarjeta-texto {
+  color: var(--gris-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Paneles */
+.paneles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel {
+  padding: 1.25rem;
+  border: 1px solid var(--gris-borde);
+  border-radius: 0.75rem;
+  background: var(--blanco);
+  margin-bottom: 1.5rem;
+}
+
+.paneles .panel {
+  margin-bottom: 0;
+}
+
+.panel h2 {
+  margin: 0 0 1rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--rojo);
+  font-size: 1.1rem;
+}
+
+.ayuda {
+  margin: -0.5rem 0 1rem;
+  color: var(--gris-texto);
+  font-size: 0.85rem;
+}
+
+/* Listas de los paneles */
+.lista-primas,
+.lista-inconsistencias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-primas li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--gris-claro);
+}
+
+.lista-primas li:last-child {
+  border-bottom: 0;
+}
+
+.lista-inconsistencias li {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.1rem;
+  border-bottom: 1px solid var(--gris-claro);
+}
+
+.lista-inconsistencias li:last-child {
+  border-bottom: 0;
+}
+
+.lista-inconsistencias li::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  left: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--rojo);
+}
+
+.vacio {
+  color: var(--gris-texto);
+  font-style: italic;
+}
+
+/* Tabla */
+.tabla-contenedor {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla th {
+  padding: 0.65rem 0.5rem;
+  background: var(--negro);
+  color: var(--blanco);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--gris-borde);
+  vertical-align: top;
+}
+
+.tabla tbody tr:hover {
+  background: #faf9f8;
+}
+
+/* Filas según el estado */
+.fila-vencida {
+  background: var(--rojo-claro);
+}
+
+.fila-vencida:hover {
+  background: #f7dbd5;
+}
+
+.fila-por-vencer {
+  background: var(--ambar-claro);
+}
+
+.fila-por-vencer:hover {
+  background: #ffe9c2;
+}
+
+/* Etiquetas de estado */
+.estado {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.estado-vigente {
+  background: #e3f3ea;
+  color: #145c38;
+}
+
+.estado-por-vencer {
+  background: #ffedcc;
+  color: #7a4a00;
+}
+
+.estado-vencida {
+  background: #f8d7d2;
+  color: #8b1300;
+}
+
+.estado-sin-fecha {
+  background: var(--gris-claro);
+  color: #4a4745;
+}
+
+/* Etiquetas de advertencia */
+.etiqueta {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.etiqueta-error {
+  background: #f8d7d2;
+  color: #8b1300;
+}
+
+.etiqueta-aviso {
+  background: #ffedcc;
+  color: #7a4a00;
+}
+
+/* Enlace para ver el aviso */
+.enlace-aviso {
+  color: var(--rojo);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.enlace-aviso:hover,
+.enlace-aviso:focus-visible {
+  text-decoration: underline;
+}
+
+/* Celular */
+@media (max-width: 800px) {
+  .tarjetas,
+  .paneles {
+    grid-template-columns: 1fr;
+  }
+
+  .acciones {
+    justify-content: stretch;
+  }
+
+  .boton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .cabecera h1 {
+    font-size: 1.3rem;
+  }
+}
