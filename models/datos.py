@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 from datetime import date, datetime
 from pathlib import Path
 
@@ -17,6 +18,18 @@ RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 CARPETA_DATA = RAIZ_PROYECTO / "data"
 RUTA_CLIENTES = CARPETA_DATA / "Maestro_Clientes.xlsx"
 CARPETA_POLIZAS = CARPETA_DATA / "polizas"
+
+# ---------------------------------------------------------------------------
+# Carpeta de archivos importados por el usuario
+# ---------------------------------------------------------------------------
+# data/ es la bodega original y NO se toca. Lo que se importa desde la página
+# se guarda aquí, en una carpeta aparte que sí se puede escribir.
+CARPETA_USUARIO = RAIZ_PROYECTO / "datos_usuario"
+RUTA_CLIENTES_USUARIO = CARPETA_USUARIO / "Maestro_Clientes.xlsx"
+CARPETA_POLIZAS_USUARIO = CARPETA_USUARIO / "polizas"
+
+# Lista de columnas que debe tener el Excel de clientes.
+COLUMNAS_CLIENTES = ["Cedula", "Nombre_Completo", "Correo", "Telefono", "Asesor"]
 
 # Diccionario: etiqueta que aparece en el PDF -> nombre del campo en el diccionario.
 CAMPOS = {
@@ -67,12 +80,12 @@ def _convertir_monto(texto: str) -> float | None:
         return None
 
 
-def cargar_clientes() -> pd.DataFrame:
-    """Lee la hoja 'Clientes' y devuelve un DataFrame con la cédula como texto."""
+def _leer_clientes(ruta: Path) -> pd.DataFrame:
+    """Lee una hoja 'Clientes' desde un Excel y deja la cédula como texto limpio."""
     # dtype={"Cedula": str}: obliga a pandas a leer la cédula como texto,
     # no como número.
     clientes = pd.read_excel(
-        RUTA_CLIENTES,
+        ruta,
         sheet_name="Clientes",
         dtype={"Cedula": str},
     )
@@ -82,6 +95,15 @@ def cargar_clientes() -> pd.DataFrame:
     clientes["Cedula"] = clientes["Cedula"].astype(str).str.strip()
 
     return clientes
+
+
+def cargar_clientes() -> pd.DataFrame:
+    """Devuelve los clientes. Si el usuario importó un maestro, ese manda."""
+    # Condicional: si existe el Excel importado, lo usamos; si no, el original.
+    if RUTA_CLIENTES_USUARIO.exists():
+        return _leer_clientes(RUTA_CLIENTES_USUARIO)
+
+    return _leer_clientes(RUTA_CLIENTES)
 
 
 def leer_poliza(ruta_pdf: str | Path) -> dict:
@@ -146,9 +168,144 @@ def leer_poliza(ruta_pdf: str | Path) -> dict:
 
 
 def cargar_polizas() -> list[dict]:
-    """Recorre data/polizas en orden alfabético y devuelve una lista de diccionarios."""
-    # sorted() ordena las rutas alfabéticamente.
-    rutas = sorted(CARPETA_POLIZAS.glob("*.pdf"))
+    """Devuelve todas las pólizas: las del repositorio más las importadas."""
+    # Base: los PDFs que vienen en data/polizas, en orden alfabético.
+    polizas = [leer_poliza(ruta) for ruta in sorted(CARPETA_POLIZAS.glob("*.pdf"))]
 
-    # Lista por comprensión: lee cada PDF y guarda su diccionario.
-    return [leer_poliza(ruta) for ruta in rutas]
+    # Condicional: si el usuario importó PDFs, también se leen.
+    if CARPETA_POLIZAS_USUARIO.exists():
+        subidas = [
+            leer_poliza(ruta)
+            for ruta in sorted(CARPETA_POLIZAS_USUARIO.glob("*.pdf"))
+        ]
+
+        # Diccionario: número de póliza -> póliza.
+        # Si una póliza subida tiene el mismo número que una del repositorio,
+        # la subida reemplaza a la original (queda la última que se guarda).
+        por_numero: dict[str, dict] = {}
+        sin_numero: list[dict] = []
+
+        for poliza in polizas + subidas:
+            if poliza["numero"]:
+                por_numero[poliza["numero"]] = poliza
+            else:
+                sin_numero.append(poliza)
+
+        polizas = list(por_numero.values()) + sin_numero
+
+        # Orden final por número (las que no tienen número van al final).
+        polizas.sort(key=lambda p: (p["numero"] is None, p["numero"] or ""))
+
+    return polizas
+
+
+def guardar_clientes(contenido: bytes) -> dict:
+    """Valida un Excel de clientes y lo guarda. Devuelve un resumen."""
+    # Condicional: intentamos leer la hoja "Clientes" del archivo subido.
+    try:
+        datos = pd.read_excel(
+            io.BytesIO(contenido),
+            sheet_name="Clientes",
+            dtype={"Cedula": str},
+        )
+    except ValueError:
+        # pandas lanza ValueError cuando la hoja no existe.
+        return {
+            "ok": False,
+            "mensaje": "El Excel no tiene una hoja llamada 'Clientes'.",
+        }
+    except Exception:
+        return {
+            "ok": False,
+            "mensaje": "No se pudo leer el Excel. Revisá que sea un .xlsx válido.",
+        }
+
+    # Lista de columnas que faltan.
+    faltantes = [columna for columna in COLUMNAS_CLIENTES if columna not in datos.columns]
+
+    if faltantes:
+        return {
+            "ok": False,
+            "mensaje": "Faltan columnas en el Excel: " + ", ".join(faltantes) + ".",
+        }
+
+    # Condicional: el Excel tiene que traer al menos un cliente.
+    if len(datos) == 0:
+        return {"ok": False, "mensaje": "El Excel no tiene filas de clientes."}
+
+    # Columna de cédulas como texto, conservando los vacíos.
+    cedulas = datos["Cedula"].astype("string").str.strip()
+
+    if cedulas.isna().any() or (cedulas == "").any():
+        return {
+            "ok": False,
+            "mensaje": "Hay clientes sin cédula. Completá esa columna.",
+        }
+
+    if cedulas.duplicated().any():
+        return {
+            "ok": False,
+            "mensaje": "Hay cédulas repetidas en el Excel. Cada cliente debe tener la suya.",
+        }
+
+    # Creamos la carpeta y guardamos el archivo tal cual lo subió el usuario.
+    CARPETA_USUARIO.mkdir(parents=True, exist_ok=True)
+    RUTA_CLIENTES_USUARIO.write_bytes(contenido)
+
+    return {
+        "ok": True,
+        "mensaje": f"Maestro importado: {len(datos)} clientes.",
+    }
+
+
+def guardar_polizas(archivos: list[tuple[str, bytes]]) -> dict:
+    """Valida y guarda los PDFs subidos. Devuelve un resumen."""
+    # Listas para separar lo que sirve de lo que no.
+    guardadas: list[str] = []
+    rechazadas: list[str] = []
+
+    # Creamos la carpeta de pólizas importadas.
+    CARPETA_POLIZAS_USUARIO.mkdir(parents=True, exist_ok=True)
+
+    # Bucle: recorremos cada archivo recibido como (nombre, contenido).
+    for nombre, contenido in archivos:
+        # Path(nombre).name quita cualquier ruta que venga en el nombre.
+        nombre_limpio = Path(nombre).name
+
+        # Condicional: solo aceptamos PDFs.
+        if not nombre_limpio.lower().endswith(".pdf"):
+            rechazadas.append(f"{nombre_limpio}: no es un PDF.")
+            continue
+
+        destino = CARPETA_POLIZAS_USUARIO / nombre_limpio
+        destino.write_bytes(contenido)
+
+        # Condicional: comprobamos que el PDF se pueda leer.
+        try:
+            poliza = leer_poliza(destino)
+        except Exception:
+            destino.unlink(missing_ok=True)
+            rechazadas.append(f"{nombre_limpio}: está dañado o no se pudo leer.")
+            continue
+
+        # Condicional: debe tener número de póliza para servir.
+        if not poliza["numero"]:
+            destino.unlink(missing_ok=True)
+            rechazadas.append(f"{nombre_limpio}: no tiene 'Numero de poliza'.")
+            continue
+
+        guardadas.append(poliza["numero"])
+
+    # Armamos el mensaje según lo que pasó.
+    partes: list[str] = []
+
+    if guardadas:
+        partes.append(f"Pólizas importadas: {len(guardadas)}.")
+
+    if rechazadas:
+        partes.append("Rechazadas: " + " ".join(rechazadas))
+
+    if not partes:
+        return {"ok": False, "mensaje": "No se recibió ningún PDF."}
+
+    return {"ok": bool(guardadas), "mensaje": " ".join(partes)}

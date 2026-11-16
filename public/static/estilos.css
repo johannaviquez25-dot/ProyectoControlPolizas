@@ -380,3 +380,125 @@ a {
     font-size: 1.3rem;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Mensajes flash (importado / error)
+   --------------------------------------------------------------------------- */
+.mensajes {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.mensaje {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 6px solid var(--negro);
+  border-radius: 0.5rem;
+  background: var(--blanco);
+  font-size: 0.9rem;
+}
+
+.mensaje-ok {
+  border-left-color: var(--verde);
+  background: #e3f3ea;
+  color: #145c38;
+}
+
+.mensaje-error {
+  border-left-color: var(--rojo);
+  background: var(--rojo-claro);
+  color: #8b1300;
+}
+
+/* ---------------------------------------------------------------------------
+   Panel de acciones (importar, ejecutar, exportar)
+   --------------------------------------------------------------------------- */
+.acciones-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.accion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--gris-borde);
+  border-radius: 0.75rem;
+  background: #faf9f8;
+}
+
+.accion h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.accion p {
+  margin: 0;
+  color: var(--gris-texto);
+  font-size: 0.88rem;
+}
+
+/* Etiqueta + input de archivo */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.campo input[type="file"] {
+  padding: 0.5rem;
+  border: 1px dashed var(--gris-borde);
+  border-radius: 0.5rem;
+  background: var(--blanco);
+  font: inherit;
+  font-weight: 400;
+}
+
+.campo input[type="file"]:focus-visible {
+  outline: 2px solid var(--rojo);
+  outline-offset: 2px;
+}
+
+/* Botón con menos peso visual */
+.boton-secundario {
+  background: var(--blanco);
+  border-color: var(--negro);
+  color: var(--negro);
+}
+
+.boton-secundario:hover,
+.boton-secundario:focus-visible {
+  background: var(--negro);
+  border-color: var(--negro);
+  color: var(--blanco);
+}
+
+/* Botones al final de la página de procesos */
+.acciones-finales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Títulos internos de los paneles de resumen */
+.panel h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 800px) {
+  .acciones-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accion .boton {
+    width: 100%;
+    text-align: center;
+  }
+}

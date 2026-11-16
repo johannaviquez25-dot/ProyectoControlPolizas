@@ -18,6 +18,17 @@
   </header>
 
   <main class="contenedor">
+    {# Mensajes de éxito o error que llegan desde el controlador. #}
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+      {% if mensajes %}
+        <section class="mensajes" aria-label="Mensajes">
+          {% for categoria, texto in mensajes %}
+            <p class="mensaje mensaje-{{ categoria }}">{{ texto }}</p>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
     {% block contenido %}{% endblock %}
   </main>
 

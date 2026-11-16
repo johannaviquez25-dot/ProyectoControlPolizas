@@ -3,10 +3,69 @@
 {% block titulo %}Tablero · Control de pólizas{% endblock %}
 
 {% block contenido %}
-  <section class="acciones">
-    <a class="boton" href="{{ url_for('polizas.descargar_avisos') }}">
-      Descargar todos los avisos (.zip)
-    </a>
+  <section class="panel panel-acciones">
+    <h2>Acciones</h2>
+
+    <div class="acciones-grid">
+      {# --- 1. Importar archivos --- #}
+      <form
+        class="accion"
+        action="{{ url_for('polizas.importar') }}"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <h3>1. Importar archivos</h3>
+
+        <label class="campo">
+          <span>Maestro de clientes (.xlsx)</span>
+          <input type="file" name="maestro" accept=".xlsx">
+        </label>
+
+        <label class="campo">
+          <span>Pólizas nuevas (.pdf, podés elegir varias)</span>
+          <input type="file" name="polizas" accept=".pdf" multiple>
+        </label>
+
+        <button class="boton" type="submit">Importar</button>
+
+        <p class="ayuda">
+          El maestro debe tener la hoja <strong>Clientes</strong> con las columnas
+          Cedula, Nombre_Completo, Correo, Telefono y Asesor.
+          Los archivos se guardan en <strong>datos_usuario/</strong>; la carpeta
+          data/ no se toca.
+        </p>
+      </form>
+
+      {# --- 2. Ejecutar procesos --- #}
+      <form
+        class="accion"
+        action="{{ url_for('polizas.ejecutar_procesos') }}"
+        method="post"
+      >
+        <h3>2. Ejecutar procesos</h3>
+
+        <p>
+          Relee el maestro y las pólizas, vuelve a calcular los estados y muestra
+          un resumen de lo que encontró.
+        </p>
+
+        <button class="boton boton-secundario" type="submit">Ejecutar procesos</button>
+      </form>
+
+      {# --- 3. Exportar avisos --- #}
+      <div class="accion">
+        <h3>3. Exportar avisos</h3>
+
+        <p>
+          Descarga un .zip con los avisos de las pólizas por vencer y vencidas,
+          más un Excel con la tabla completa.
+        </p>
+
+        <a class="boton" href="{{ url_for('polizas.descargar_avisos') }}">
+          Exportar avisos (.zip)
+        </a>
+      </div>
+    </div>
   </section>
 
   <section class="tarjetas" aria-label="Contadores por estado">

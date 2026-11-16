@@ -1,5 +1,7 @@
 """Capa de arranque: crea y configura la aplicación Flask."""
 
+import os
+
 from flask import Flask
 
 from controllers.polizas_controller import bp
@@ -11,6 +13,13 @@ app = Flask(
     static_folder="public/static",
     static_url_path="/static",
 )
+
+# Clave para los mensajes flash (los avisos de "importado" o "error").
+# En Render se puede cambiar con la variable de entorno SECRET_KEY.
+app.secret_key = os.environ.get("SECRET_KEY", "clave-academica-control-polizas")
+
+# Tamaño máximo de una subida: 20 MB (Excel + varios PDFs).
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 # Registramos las rutas del controlador.
 app.register_blueprint(bp)

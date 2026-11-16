@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block titulo %}Procesos · Control de pólizas{% endblock %}
+
+{% block contenido %}
+  <section class="panel">
+    <h2>Resumen de la ejecución</h2>
+
+    <p class="ayuda">
+      Ejecutado el {{ momento.strftime('%d/%m/%Y a las %H:%M:%S') }}
+      · tardó {{ "%.2f"|format(duracion) }} segundos
+      · fecha de corte {{ fecha_corte.strftime('%d/%m/%Y') }}
+    </p>
+
+    <div class="tarjetas">
+      <article class="tarjeta">
+        <span class="tarjeta-numero">{{ resumen.total_clientes }}</span>
+        <span class="tarjeta-texto">Clientes leídos</span>
+      </article>
+
+      <article class="tarjeta">
+        <span class="tarjeta-numero">{{ resumen.total_polizas }}</span>
+        <span class="tarjeta-texto">Pólizas leídas</span>
+      </article>
+
+      <article class="tarjeta tarjeta-vencida">
+        <span class="tarjeta-numero">{{ resumen.inconsistencias|length }}</span>
+        <span class="tarjeta-texto">Inconsistencias</span>
+      </article>
+    </div>
+
+    <h3>Estados encontrados</h3>
+    <ul class="lista-primas">
+      <li>
+        <span>Vigentes</span>
+        <strong>{{ resumen.conteo['Vigente'] }}</strong>
+      </li>
+      <li>
+        <span>Por vencer</span>
+        <strong>{{ resumen.conteo['Por vencer'] }}</strong>
+      </li>
+      <li>
+        <span>Vencidas</span>
+        <strong>{{ resumen.conteo['Vencida'] }}</strong>
+      </li>
+      {% if resumen.conteo['Sin fecha'] %}
+        <li>
+          <span>Sin fecha legible</span>
+          <strong>{{ resumen.conteo['Sin fecha'] }}</strong>
+        </li>
+      {% endif %}
+    </ul>
+
+    {% if resumen.inconsistencias %}
+      <h3>Inconsistencias encontradas</h3>
+      <ul class="lista-inconsistencias">
+        {% for texto in resumen.inconsistencias %}
+          <li>{{ texto }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="acciones-finales">
+      <a class="boton boton-secundario" href="{{ url_for('polizas.inicio') }}">
+        Volver al tablero
+      </a>
+      <a class="boton" href="{{ url_for('polizas.descargar_avisos') }}">
+        Exportar avisos (.zip)
+      </a>
+    </div>
+  </section>
+{% endblock %}

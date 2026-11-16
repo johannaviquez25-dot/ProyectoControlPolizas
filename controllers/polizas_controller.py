@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import io
+import time
 import zipfile
+from datetime import datetime
 
-from flask import Blueprint, abort, render_template, request, send_file
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 
+from models.datos import guardar_clientes, guardar_polizas
 from models.polizas import (
     FECHA_CORTE,
     buscar_inconsistencias,
@@ -14,7 +26,9 @@ from models.polizas import (
     calcular_resultados,
     contar_por_estado,
     primas_por_aseguradora,
+    resumen_ejecucion,
 )
+from services.exportador_excel import exportar_excel
 from services.generador_aviso import crear_aviso_pdf
 
 # Blueprint: agrupa las rutas de este controlador.
@@ -38,6 +52,61 @@ def inicio():
         primas=primas,
         inconsistencias=inconsistencias,
         fecha_corte=FECHA_CORTE,
+    )
+
+
+@bp.route("/importar", methods=["POST"])
+def importar():
+    """Recibe el Excel de clientes y los PDFs de pólizas, y los guarda."""
+    # Lista de mensajes para mostrar al usuario.
+    mensajes: list[dict] = []
+
+    # --- 1. Excel del maestro de clientes ---
+    archivo_clientes = request.files.get("maestro")
+
+    if archivo_clientes and archivo_clientes.filename:
+        resultado = guardar_clientes(archivo_clientes.read())
+        mensajes.append(resultado)
+
+    # --- 2. PDFs de pólizas (pueden ser varios) ---
+    archivos_polizas = [
+        (archivo.filename, archivo.read())
+        for archivo in request.files.getlist("polizas")
+        if archivo and archivo.filename
+    ]
+
+    if archivos_polizas:
+        mensajes.append(guardar_polizas(archivos_polizas))
+
+    # Condicional: si no mandó nada, avisamos.
+    if not mensajes:
+        flash("No elegiste ningún archivo para importar.", "error")
+        return redirect(url_for("polizas.inicio"))
+
+    # Bucle: mostramos cada mensaje con su color (éxito o error).
+    for mensaje in mensajes:
+        flash(mensaje["mensaje"], "ok" if mensaje["ok"] else "error")
+
+    return redirect(url_for("polizas.inicio"))
+
+
+@bp.route("/procesos", methods=["POST"])
+def ejecutar_procesos():
+    """Vuelve a leer los datos y muestra un resumen de la ejecución."""
+    # Cronómetro para saber cuánto tardó el proceso.
+    inicio_reloj = time.perf_counter()
+
+    # El modelo hace todo el trabajo; acá solo recibimos el resumen.
+    resumen = resumen_ejecucion()
+
+    duracion = time.perf_counter() - inicio_reloj
+
+    return render_template(
+        "procesos.html",
+        resumen=resumen,
+        fecha_corte=FECHA_CORTE,
+        momento=datetime.now(),
+        duracion=duracion,
     )
 
 
@@ -68,7 +137,7 @@ def ver_aviso():
 
 @bp.route("/descargar-avisos")
 def descargar_avisos():
-    """Devuelve un .zip con los avisos de las pólizas por vencer y vencidas."""
+    """Devuelve un .zip con los avisos y un Excel con la tabla de pólizas."""
     resultados = calcular_resultados()
 
     # Filtramos las pólizas que sí necesitan aviso.
@@ -85,9 +154,12 @@ def descargar_avisos():
         for poliza in seleccionadas:
             datos_pdf = crear_aviso_pdf(poliza)
             archivo_zip.writestr(
-                f"aviso_{poliza['numero']}.pdf",
+                f"avisos/aviso_{poliza['numero']}.pdf",
                 datos_pdf,
             )
+
+        # Agregamos el Excel con la tabla completa.
+        archivo_zip.writestr("polizas.xlsx", exportar_excel(resultados))
 
     # Volvemos al inicio del archivo para enviarlo completo.
     buffer.seek(0)

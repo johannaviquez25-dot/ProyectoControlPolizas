@@ -162,6 +162,22 @@ def buscar_inconsistencias(resultados: list[dict]) -> list[str]:
     return inconsistencias
 
 
+def resumen_ejecucion(fecha_corte: date = FECHA_CORTE) -> dict:
+    """Corre todo el proceso y devuelve un resumen para la página de procesos."""
+    # Lista de pólizas ya cruzadas con el maestro y con su estado.
+    resultados = calcular_resultados(fecha_corte)
+
+    # Diccionario con todo lo que necesita la vista.
+    return {
+        "resultados": resultados,
+        "conteo": contar_por_estado(resultados),
+        "primas": primas_por_aseguradora(resultados),
+        "inconsistencias": buscar_inconsistencias(resultados),
+        "total_clientes": len(cargar_clientes()),
+        "total_polizas": len(resultados),
+    }
+
+
 def buscar_por_numero(numero: str) -> dict | None:
     """Busca una póliza por su número y devuelve el diccionario o None."""
     numero = (numero or "").strip().upper()
